@@ -1,168 +1,118 @@
-# Responsive Lab Chrome Extension
+# 쉬운 기기 테스트
 
-Responsive Lab is a Chrome Extension that opens from the browser toolbar into a full extension page for previewing one URL across multiple responsive device iframes. The UI is rebuilt from the provided static mockups with Vite, React, TypeScript, Tailwind CSS, Zustand, and Zod.
+하나의 URL을 여러 화면 크기에서 동시에 확인하는 Chrome 확장 프로그램입니다. 툴바 아이콘을 누르면 새 탭으로 열리고, 입력한 주소를 여러 반응형 프레임에 나란히 표시합니다.
 
-## Reference mockups
+## 주요 기능
 
-- `1.html` is the main Responsive Lab screen reference. It defines the top toolbar, default device frame row, colors, spacing, default zoom, and core controls.
-- `2.html` is the Add Device modal reference. It defines the modal layout, preset device list, search field, and custom size form.
+- Chrome 툴바 아이콘으로 확장 페이지 열기
+- 하나의 URL을 여러 기기/브레이크포인트 프레임에 동시 로드
+- 기본 프레임: Tailwind 기본 브레이크포인트 `sm`, `md`, `lg`, `xl`, `2xl`
+- 기기 추가, 검색, 사용자 지정 크기 입력
+- 회전, 새로고침, 닫기, 순서 변경, 초기화, 확대/축소
+- iframe 로드가 막힌 사이트를 위한 스크린샷 캡처 모드
+- 가능한 페이지에서 프레임 간 스크롤 동기화
 
-These mockup files are intentionally kept in the project root as visual and behavioral references. They are not the production extension UI.
+## 기술 스택
 
-## Features
+- Vite
+- React
+- TypeScript
+- Tailwind CSS
+- Zustand
+- Zod
+- Chrome Extension Manifest V3
 
-- Opens as a full extension page from the Chrome toolbar icon.
-- Loads a user-entered URL into multiple horizontally scrollable responsive iframe previews.
-- Starts with six Tailwind-oriented default breakpoints: `380px`, `sm` `640px`, `md` `768px`, `lg` `1024px`, `xl` `1280px`, and `2xl` `1536px`.
-- Includes the Add Device modal from `2.html` with searchable presets and custom device sizes.
-- Supports global and per-frame rotate, reload, close, drag reorder, reset, zoom, settings, GitHub notice, and Sync Scroll controls.
-- Provides a Capture Mode fallback for iframe-blocked pages by capturing a responsive screenshot from a temporary top-level Chrome tab.
-- Persists layout state with Chrome storage, with a localStorage/in-memory fallback for normal Vite development mode.
-
-## Setup
-
-Install dependencies from the project root:
+## 설치
 
 ```bash
 npm install
 ```
 
-## Development
-
-Run the Vite development server for UI work:
+## 개발
 
 ```bash
 npm run dev
 ```
 
-The development server is useful for working on React/Tailwind UI. Chrome-extension-only behavior, such as toolbar launch, `chrome.storage`, extension service worker behavior, and content-script-based iframe scroll sync, should be verified from the built extension in Chrome.
+Vite 개발 서버는 UI 작업용입니다. Chrome 확장 기능은 빌드 후 Chrome에 로드해서 확인하세요.
 
-## Validation commands
-
-Run TypeScript validation:
+## 검사 및 빌드
 
 ```bash
 npm run typecheck
-```
-
-Build the production extension bundle:
-
-```bash
 npm run build
 ```
 
-Preview the built web app shell locally if needed:
+빌드 결과는 `dist/`에 생성됩니다.
 
-```bash
-npm run preview
-```
+## Chrome에 확장 프로그램 로드하기
 
-## Load as an unpacked Chrome extension
-
-1. Build the extension:
+1. 빌드합니다.
 
    ```bash
    npm run build
    ```
 
-2. Open Chrome and go to:
+2. Chrome에서 아래 주소를 엽니다.
 
    ```text
    chrome://extensions
    ```
 
-3. Enable **Developer mode**.
-4. Click **Load unpacked**.
-5. Select this folder:
+3. **개발자 모드**를 켭니다.
+4. **압축해제된 확장 프로그램을 로드합니다**를 클릭합니다.
+5. 프로젝트의 `dist/` 폴더를 선택합니다.
+6. 툴바에서 **쉬운 기기 테스트** 아이콘을 클릭합니다.
 
-   ```text
-   /Users/yoon/Desktop/labs/chrome-responsive-ui-extension/dist
-   ```
+## 사용 방법
 
-6. After Chrome loads the extension, click the Responsive Lab toolbar icon.
-7. Verify that Chrome opens a new tab with the Responsive Lab extension page.
+1. 확장 프로그램을 엽니다.
+2. 상단 입력창에 확인할 URL을 입력합니다.
+3. **Go**를 누르거나 Enter를 입력합니다.
+4. 각 프레임에서 화면 크기별 결과를 확인합니다.
+5. 필요하면 기기 추가, 회전, 확대/축소, 새로고침, 스크롤 동기화를 사용합니다.
 
-The extension is intentionally configured as a toolbar action that opens a page tab. It does not use a popup and does not inject an overlay on the currently viewed website.
+## 기본 화면 크기
 
-## Usage
-
-1. Open Responsive Lab from the Chrome toolbar icon.
-2. Enter a URL in the toolbar input. For example:
-
-   ```text
-   https://example.com
-   ```
-
-3. Click **Go** or press Enter.
-4. The URL loads inside every active device frame.
-5. Use the horizontal canvas scroll to inspect all device previews.
-6. Use **Add** to open the Add Device modal, search presets, or add a custom device.
-7. Use **Rotate**, **Reload**, **Reset**, **Zoom**, and per-frame controls to adjust the preview layout.
-
-
-
-## Tailwind default breakpoints
-
-The default preview row uses six Tailwind-oriented viewport widths:
-
-| Label | Viewport |
+| 이름 | 크기 |
 | --- | --- |
-| `380px` | `380 × 844` |
-| `sm` | `640 × 900` |
-| `md` | `768 × 1024` |
-| `lg` | `1024 × 768` |
-| `xl` | `1280 × 900` |
-| `2xl` | `1536 × 960` |
+| `sm` | `640 × 982` |
+| `md` | `768 × 982` |
+| `lg` | `1024 × 982` |
+| `xl` | `1280 × 982` |
+| `2xl` | `1536 × 982` |
 
-The Add Device modal keeps the existing freeform/preset device list, so the Tailwind breakpoints are the default layout rather than the only available sizes.
+## 제한 사항
 
-## Privacy policy
+일부 사이트는 보안 설정 때문에 iframe 안에서 표시되지 않을 수 있습니다. 이 경우 캡처 모드를 사용하면 임시 탭에서 해당 화면 크기로 스크린샷을 찍어 프레임에 표시합니다. 캡처 결과는 정적인 이미지이므로 실제 페이지처럼 조작할 수는 없습니다.
 
-The public privacy policy for Responsive Lab is hosted on GitHub Pages:
+스크롤 동기화는 가능한 페이지에서만 동작합니다. 사이트 구조, 브라우저 보안 정책, iframe 차단 여부에 따라 정확히 동작하지 않을 수 있습니다.
+
+## 개인정보 및 권한
+
+확장 프로그램은 스크롤 동기화와 캡처 모드를 위해 `http://*/*`, `https://*/*`, `tabs`, `storage`, `debugger` 권한을 사용합니다.
+
+- `storage`: 화면 구성과 설정 저장
+- `tabs`: 확장 페이지와 임시 캡처 탭 제어
+- `debugger`: 사용자가 캡처를 요청했을 때 기기 크기 에뮬레이션 및 스크린샷 생성
+- 호스트 권한: 가능한 페이지에서 iframe 스크롤 동기화 지원
+
+개인정보 처리방침:
 
 ```text
 https://airman5573.github.io/chrome-responsive-ui-extension-privacy/
 ```
 
-## Known limitations
-
-### Iframe blocking
-
-Some websites intentionally prevent iframe embedding with security headers such as `X-Frame-Options` or Content Security Policy `frame-ancestors`. When a site blocks iframe rendering, Responsive Lab cannot force it to display inside a frame. The app shows a blocked or maybe-blocked fallback state and provides **Capture screenshot**, **Open in new tab**, and retry actions.
-
-Capture Mode is a fallback, not the primary renderer. It opens the URL in a temporary top-level Chrome tab, applies the target device viewport through Chrome's debugger API, captures a screenshot, closes the temporary tab, and displays the captured image in the device frame. This avoids iframe embedding restrictions for many pages, but the result is a static screenshot rather than a live interactive page.
-
-Examples of sites that may block iframe embedding include many login pages, banking pages, admin dashboards, large social platforms, and other security-sensitive websites.
-
-### Sync Scroll is best-effort
-
-Sync Scroll is implemented as a best-effort feature using a content script and message bridge. It works best on normal pages where the top-level document scrolls vertically. It may not work perfectly when:
-
-- the target site blocks iframe embedding;
-- Chrome does not inject the content script into a page or frame;
-- the site uses nested custom scroll containers instead of window/document scrolling;
-- the site is a complex SPA that virtualizes or overrides scroll behavior;
-- the iframe is cross-origin and browser security prevents direct parent-page access.
-
-The content script is intentionally privacy-preserving: it sends only readiness and scroll ratio messages. It does not transmit page text, form values, cookies, or DOM content.
-
-### Host permissions and debugger permission
-
-The extension declares `http://*/*` and `https://*/*` host permissions so the Sync Scroll content script can run in eligible iframe pages. This is required for the best-effort scroll synchronization behavior.
-
-The extension also requests Chrome's `debugger` permission for Capture Mode fallback. It is used only after the user requests a fallback capture for an iframe-blocked preview, so Responsive Lab can emulate the selected device viewport and capture a screenshot from a temporary tab.
-
-## Project structure
+## 프로젝트 구조
 
 ```text
-1.html                         Original main screen mockup reference
-2.html                         Add Device modal mockup reference
-public/manifest.json           Manifest V3 extension manifest
-public/icons/                  Extension icons
-src/                           React, store, schemas, components, extension scripts
-src/extension/background.ts    Toolbar click handler that opens index.html in a tab
+public/manifest.json           Chrome 확장 프로그램 매니페스트
+public/icons/                  확장 프로그램 아이콘
+src/                           React 앱, 상태 관리, 스키마, 컴포넌트
+src/extension/background.ts    툴바 클릭 시 확장 페이지를 여는 서비스 워커
 src/extension/scrollContentScript.ts
-                               Best-effort iframe scroll sync content script
-vite.config.ts                 Multi-entry Vite build for app, background, and content script
-dist/                          Production extension output after npm run build
+                               스크롤 동기화용 콘텐츠 스크립트
+vite.config.ts                 앱/서비스 워커/콘텐츠 스크립트 빌드 설정
+dist/                          빌드 결과물
+1.html, 2.html                 초기 화면 참고용 정적 목업
 ```
