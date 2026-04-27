@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Device</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0f111a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 1rem;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2a3041;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #394259;
+    }
+    
+    .cursor-icon {
+      position: absolute;
+      right: 110px;
+      margin-top: 10px;
+      pointer-events: none;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Main Container -->
+  <main class="bg-[#1e2330] w-full max-w-[460px] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col">
+    <!-- Header Section -->
+    <header class="px-6 pt-6 pb-4">
+      <div class="flex justify-between items-center mb-4">
+        <h1 class="text-white text-[1.125rem] font-bold">Add Device</h1>
+        <button class="text-gray-400 hover:text-white transition-colors" aria-label="Close">
+          <img height="16" width="16" src="https://placehold.co/16x16?text=Close%20Modal" alt="Close Modal" class="w-4 h-4" />
+        </button>
+      </div>
+
+      <!-- Search Box -->
+      <div class="relative">
+        <input 
+          type="text" 
+          placeholder="Search devices..." 
+          class="w-full bg-[#151822] text-white placeholder-[#6b7280] text-[0.9rem] rounded-[10px] py-[10px] px-4 border border-[#5556d6] ring-1 ring-[#5556d6] outline-none transition-all"
+        />
+      </div>
+    </header>
+
+    <!-- List Section -->
+    <section class="px-3 pb-2 overflow-y-auto h-[320px] ml-2 mt-1">
+      <ul class="flex flex-col gap-[2px] pr-2">
+        <li class="flex justify-between items-center px-4 py-[10px] rounded-lg text-[0.9rem] text-[#d1d5db] hover:bg-[#282d3e] hover:text-white cursor-pointer transition-colors group">
+          <span class="font-medium">iPhone 14</span>
+          <span class="text-[#8892b0] group-hover:text-gray-400 text-[0.8rem]">390 &times; 844</span>
+        </li>
+        <li class="flex justify-between items-center px-4 py-[10px] rounded-lg text-[0.9rem] text-[#d1d5db] hover:bg-[#282d3e] hover:text-white cursor-pointer transition-colors group">
+          <span class="font-medium">iPhone 14 Pro Max</span>
+          <span class="text-[#8892b0] group-hover:text-gray-400 text-[0.8rem]">430 &times; 932</span>
+        </li>
+        <li class="flex justify-between items-center px-4 py-[10px] rounded-lg text-[0.9rem] text-[#d1d5db] hover:bg-[#282d3e] hover:text-white cursor-pointer transition-colors group">
+          <span class="font-medium">Pixel 7</span>
+          <span class="text-[#8892b0] group-hover:text-gray-400 text-[0.8rem]">412 &times; 915</span>
+        </li>
+        <li class="flex justify-between items-center px-4 py-[10px] rounded-lg text-[0.9rem] text-[#d1d5db] hover:bg-[#282d3e] hover:text-white cursor-pointer transition-colors group">
+          <span class="font-medium">Samsung S23</span>
+          <span class="text-[#8892b0] group-hover:text-gray-400 text-[0.8rem]">360 &times; 780</span>
+        </li>
+        
+        <!-- Active / Hovered Item -->
+        <li class="flex justify-between items-center px-4 py-[10px] rounded-lg text-[0.9rem] text-white bg-[#282d3e] cursor-pointer relative group">
+          <span class="font-medium">Galaxy Fold</span>
+          <span class="text-[#8892b0] text-[0.8rem]">280 &times; 653</span>
+          <img height="24" width="24" src="https://placehold.co/24x24?text=Hand%20Cursor" alt="Hand Cursor" class="cursor-icon w-6 h-6" />
+        </li>
+        
+        <li class="flex justify-between items-center px-4 py-[10px] rounded-lg text-[0.9rem] text-[#d1d5db] hover:bg-[#282d3e] hover:text-white cursor-pointer transition-colors group">
+          <span class="font-medium">iPad Mini</span>
+          <span class="text-[#8892b0] group-hover:text-gray-400 text-[0.8rem]">768 &times; 1024</span>
+        </li>
+        <li class="flex justify-between items-center px-4 py-[10px] rounded-lg text-[0.9rem] text-[#d1d5db] hover:bg-[#282d3e] hover:text-white cursor-pointer transition-colors group">
+          <span class="font-medium">iPad Air</span>
+          <span class="text-[#8892b0] group-hover:text-gray-400 text-[0.8rem]">820 &times; 1180</span>
+        </li>
+        <li class="flex justify-between items-center px-4 py-[10px] rounded-lg text-[0.9rem] text-[#d1d5db] hover:bg-[#282d3e] hover:text-white cursor-pointer transition-colors group">
+          <span class="font-medium">iPad Pro 12.9"</span>
+          <span class="text-[#8892b0] group-hover:text-gray-400 text-[0.8rem]">1024 &times; 1366</span>
+        </li>
+        <li class="flex justify-between items-center px-4 py-[10px] rounded-lg text-[0.9rem] text-[#d1d5db] hover:bg-[#282d3e] hover:text-white cursor-pointer transition-colors group">
+          <span class="font-medium">Surface Pro 8</span>
+          <span class="text-[#8892b0] group-hover:text-gray-400 text-[0.8rem]">1440 &times; 960</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Dividing Line -->
+    <div class="h-px bg-[#303649] mx-6 mt-1 mb-2"></div>
+
+    <!-- Custom Size Bottom Box -->
+    <footer class="px-6 pb-6 pt-3">
+      <h3 class="text-[#ced4da] text-sm font-bold mb-3 tracking-wide">Custom Size</h3>
+      <div class="flex gap-[10px] items-stretch">
+        <input 
+          type="text" 
+          placeholder="Name" 
+          class="flex-grow min-w-[100px] bg-[#151822] border border-[#2c3245] text-white placeholder-[#6b7280] rounded-lg py-2.5 px-3 focus:outline-none focus:border-[#5556d6] text-sm transition-all shadow-inner"
+        />
+        <input 
+          type="text" 
+          placeholder="Width" 
+          class="w-20 bg-[#151822] border border-[#2c3245] text-white placeholder-[#6b7280] rounded-lg py-2.5 px-3 focus:outline-none focus:border-[#5556d6] text-sm transition-all shadow-inner"
+        />
+        <input 
+          type="text" 
+          placeholder="Height" 
+          class="w-20 bg-[#151822] border border-[#2c3245] text-white placeholder-[#6b7280] rounded-lg py-2.5 px-3 focus:outline-none focus:border-[#5556d6] text-sm transition-all shadow-inner"
+        />
+        <button class="bg-[#5556d6] hover:bg-[#494abc] text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors duration-200">
+          Add
+        </button>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    document.querySelectorAll('li').forEach(item => {
+      item.addEventListener('click', () => {
+        // Remove active state
+        document.querySelectorAll('li').forEach(li => {
+          li.classList.remove('bg-[#282d3e]', 'text-white');
+          li.classList.add('text-[#d1d5db]');
+          
+          const icon = li.querySelector('.cursor-icon');
+          if(icon) {
+            icon.remove();
+          }
+        });
+        
+        // Apply active state
+        item.classList.add('bg-[#282d3e]', 'text-white');
+        item.classList.remove('text-[#d1d5db]');
+      });
+    });
+  </script>
+</body>
+</html>
