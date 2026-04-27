@@ -2,6 +2,7 @@ const CONTENT_MESSAGE_SOURCE = 'responsive-lab-content';
 const APP_MESSAGE_SOURCE = 'responsive-lab-app';
 const SCROLL_THROTTLE_MS = 80;
 const SUPPRESS_AFTER_REMOTE_SCROLL_MS = 250;
+const TOP_SCROLL_RATIO_THRESHOLD = 0.01;
 
 let lastSentAt = 0;
 let lastSentRatio = -1;
@@ -41,8 +42,16 @@ const getScrollRatio = () => {
 const scrollToRatio = (ratio: number) => {
   const scrollElement = getScrollElement();
   const maxScroll = Math.max(0, scrollElement.scrollHeight - scrollElement.clientHeight);
+  const targetTop = ratio <= TOP_SCROLL_RATIO_THRESHOLD ? 0 : maxScroll * ratio;
+
   suppressScrollUntil = Date.now() + SUPPRESS_AFTER_REMOTE_SCROLL_MS;
-  window.scrollTo({ top: maxScroll * ratio, behavior: 'auto' });
+
+  // Use both document and window scrolling so top sync is more reliable across
+  // pages that attach scrolling to slightly different root elements.
+  scrollElement.scrollTop = targetTop;
+  document.documentElement.scrollTop = targetTop;
+  document.body.scrollTop = targetTop;
+  window.scrollTo({ top: targetTop, behavior: 'auto' });
 };
 
 const postScrollRatio = () => {
@@ -53,9 +62,16 @@ const postScrollRatio = () => {
   }
 
   const now = Date.now();
-  const ratio = getScrollRatio();
+  const measuredRatio = getScrollRatio();
+  const ratio = measuredRatio <= TOP_SCROLL_RATIO_THRESHOLD ? 0 : measuredRatio;
+  const reachedTop = ratio === 0;
+  const alreadySentTop = lastSentRatio === 0;
 
-  if (now - lastSentAt < SCROLL_THROTTLE_MS && Math.abs(ratio - lastSentRatio) < 0.01) {
+  if (!reachedTop && now - lastSentAt < SCROLL_THROTTLE_MS && Math.abs(ratio - lastSentRatio) < 0.01) {
+    return;
+  }
+
+  if (reachedTop && alreadySentTop) {
     return;
   }
 

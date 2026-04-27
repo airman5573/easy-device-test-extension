@@ -63,12 +63,14 @@ export function DeviceCanvas() {
         until: now + ACTIVE_SCROLL_SOURCE_LOCK_MS,
       };
 
-      if (now - lastBroadcastAtRef.current < 50) {
+      const targetRatio = message.ratio <= TOP_SCROLL_RATIO_THRESHOLD ? 0 : message.ratio;
+      const reachedTop = targetRatio === 0;
+
+      if (!reachedTop && now - lastBroadcastAtRef.current < 50) {
         return;
       }
       lastBroadcastAtRef.current = now;
 
-      const targetRatio = message.ratio <= TOP_SCROLL_RATIO_THRESHOLD ? 0 : message.ratio;
       const scrollCommand = createScrollToMessage(targetRatio);
 
       iframeRefs.current.forEach((iframe, deviceId) => {
