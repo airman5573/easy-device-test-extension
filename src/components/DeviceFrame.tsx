@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { captureViewport } from '../extension/captureClient';
-import { getDeviceWrapperSize, getZoomScale } from '../lib/deviceMath';
+import { getScaledFrameSize, getZoomScale } from '../lib/deviceMath';
 import type { DeviceInstance } from '../lib/types';
 import { EmptyFrameState } from './EmptyFrameState';
 import { IframeBlockedState } from './IframeBlockedState';
@@ -25,15 +25,16 @@ type CaptureState =
   | { status: 'failed'; error: string };
 
 const IFRAME_TIMEOUT_MS = 8000;
-const FRAME_HEADER_HEIGHT = 40;
+const FRAME_HEADER_HEIGHT = 48;
 
 export function DeviceFrame({ device, zoom, activeUrl, index, onRotate, onReload, onClose, onMove, onIframeRef }: DeviceFrameProps) {
-  const wrapperSize = getDeviceWrapperSize(device, zoom);
+  const frameHeight = device.height + FRAME_HEADER_HEIGHT;
+  const wrapperSize = getScaledFrameSize(device.width, frameHeight, zoom);
   const scale = getZoomScale(zoom);
   const [loadStatus, setLoadStatus] = useState<FrameLoadStatus>('idle');
   const [captureState, setCaptureState] = useState<CaptureState>({ status: 'idle' });
   const iframeKey = activeUrl ? `${device.id}-${device.reloadKey}-${activeUrl}` : `${device.id}-empty`;
-  const viewportHeight = Math.max(100, device.height - FRAME_HEADER_HEIGHT);
+  const viewportHeight = Math.max(100, device.height);
 
   useEffect(() => {
     setCaptureState({ status: 'idle' });
@@ -104,7 +105,7 @@ export function DeviceFrame({ device, zoom, activeUrl, index, onRotate, onReload
         data-ai-id="device-frame"
         style={{
           width: `${device.width}px`,
-          height: `${device.height}px`,
+          height: `${frameHeight}px`,
           transform: `scale(${scale})`,
           transformOrigin: 'top left',
         }}
@@ -113,7 +114,7 @@ export function DeviceFrame({ device, zoom, activeUrl, index, onRotate, onReload
           <div className="flex items-center gap-4" data-ai-id="device-frame-header-info-section">
             <span
               aria-label="드래그 손잡이"
-              className="flex h-6 w-4 cursor-move items-center justify-center text-[20px] leading-none text-slate-400 opacity-80"
+              className="flex h-6 w-4 cursor-move items-center justify-center text-[20px] leading-none text-[#666666] opacity-80"
               title="끌어서 순서 변경"
               draggable
               data-ai-id="device-frame-header-drag-handle"
@@ -167,10 +168,10 @@ export function DeviceFrame({ device, zoom, activeUrl, index, onRotate, onReload
           {!activeUrl ? <EmptyFrameState /> : null}
           {activeUrl && captureState.status === 'capturing' ? (
             <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-vpbg px-8 text-center" data-ai-id="device-frame-capturing-state">
-              <div className="text-[15px] font-semibold text-white" data-ai-id="device-frame-capturing-state-title-text">
+              <div className="text-[15px] font-semibold text-[#333333]" data-ai-id="device-frame-capturing-state-title-text">
                 화면을 캡처하는 중…
               </div>
-              <p className="text-[13px] leading-5 text-slate-400" data-ai-id="device-frame-capturing-state-description-text">
+              <p className="text-[13px] leading-5 text-[#666666]" data-ai-id="device-frame-capturing-state-description-text">
                 임시 크롬 탭을 {device.width} × {viewportHeight} 크기로 열고 표시된 페이지를 캡처합니다.
               </p>
             </div>
@@ -202,16 +203,16 @@ export function DeviceFrame({ device, zoom, activeUrl, index, onRotate, onReload
           ) : null}
           {activeUrl && captureState.status === 'failed' ? (
             <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-vpbg px-8 text-center" data-ai-id="device-frame-capture-failed-state">
-              <div className="text-[15px] font-semibold text-white" data-ai-id="device-frame-capture-failed-state-title-text">
+              <div className="text-[15px] font-semibold text-[#333333]" data-ai-id="device-frame-capture-failed-state-title-text">
                 캡처 실패
               </div>
-              <p className="max-w-[420px] text-[13px] leading-5 text-slate-400" data-ai-id="device-frame-capture-failed-state-error-text">
+              <p className="max-w-[420px] text-[13px] leading-5 text-[#666666]" data-ai-id="device-frame-capture-failed-state-error-text">
                 {captureState.error}
               </p>
               <div className="flex flex-wrap items-center justify-center gap-2" data-ai-id="device-frame-capture-failed-state-actions">
                 <button
                   type="button"
-                  className="rounded border border-brand bg-brand px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-indigo-500"
+                  className="rounded border border-[#333333] bg-[#333333] px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-[#111111]"
                   onClick={captureFallback}
                   data-ai-id="device-frame-capture-failed-state-actions-recapture-button"
                 >
@@ -219,7 +220,7 @@ export function DeviceFrame({ device, zoom, activeUrl, index, onRotate, onReload
                 </button>
                 <button
                   type="button"
-                  className="rounded border border-bordercol bg-btnbg px-3 py-1.5 text-[13px] text-white transition-colors hover:bg-btnhover"
+                  className="rounded border border-bordercol bg-white px-3 py-1.5 text-[13px] text-[#333333] transition-colors hover:bg-btnhover"
                   onClick={openInNewTab}
                   data-ai-id="device-frame-capture-failed-state-actions-open-tab-button"
                 >
@@ -227,7 +228,7 @@ export function DeviceFrame({ device, zoom, activeUrl, index, onRotate, onReload
                 </button>
                 <button
                   type="button"
-                  className="rounded border border-bordercol bg-transparent px-3 py-1.5 text-[13px] text-slate-300 transition-colors hover:bg-btnhover hover:text-white"
+                  className="rounded border border-bordercol bg-transparent px-3 py-1.5 text-[13px] text-[#666666] transition-colors hover:bg-btnhover hover:text-[#333333]"
                   onClick={retryIframe}
                   data-ai-id="device-frame-capture-failed-state-actions-retry-frame-button"
                 >
@@ -243,7 +244,7 @@ export function DeviceFrame({ device, zoom, activeUrl, index, onRotate, onReload
             <>
               {loadStatus === 'loading' ? (
                 <div
-                  className="absolute inset-0 z-10 flex items-center justify-center bg-vpbg text-[13px] font-medium text-slate-400"
+                  className="absolute inset-0 z-10 flex items-center justify-center bg-vpbg text-[13px] font-medium text-[#666666]"
                   data-ai-id="device-frame-loading-state"
                 >
                   미리보기를 불러오는 중…

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { DEFAULT_PERSISTED_STATE, ADD_DEVICE_PRESETS, getRecommendedDeviceSet } from '../data/devices';
+import { DEFAULT_PERSISTED_STATE, ADD_DEVICE_PRESETS, createDefaultDeviceInstances, getRecommendedDeviceSet } from '../data/devices';
 import { clampZoom, rotateDevice } from '../lib/deviceMath';
 import { createCustomPresetId, createDeviceInstanceId } from '../lib/ids';
 import { customDeviceInputSchema, persistedAppStateSchema } from '../lib/schemas';
@@ -14,7 +14,7 @@ const cloneDefaultState = (): PersistedAppState => ({
   activeUrl: DEFAULT_PERSISTED_STATE.activeUrl,
   zoom: DEFAULT_PERSISTED_STATE.zoom,
   syncScroll: DEFAULT_PERSISTED_STATE.syncScroll,
-  devices: DEFAULT_PERSISTED_STATE.devices.map((device) => ({ ...device })),
+  devices: createDefaultDeviceInstances(),
   customDevices: [...DEFAULT_PERSISTED_STATE.customDevices],
 });
 

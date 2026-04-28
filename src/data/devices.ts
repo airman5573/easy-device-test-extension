@@ -1,5 +1,16 @@
 import type { DeviceCategory, DeviceInstance, DevicePreset } from '../lib/types';
 
+const DEFAULT_IFRAME_HEIGHT_RATIO = 0.8;
+const FALLBACK_DEFAULT_IFRAME_HEIGHT = 982;
+
+const getDefaultIframeHeight = () => {
+  if (typeof window === 'undefined') {
+    return FALLBACK_DEFAULT_IFRAME_HEIGHT;
+  }
+
+  return Math.max(100, Math.min(10000, Math.round(window.innerHeight * DEFAULT_IFRAME_HEIGHT_RATIO)));
+};
+
 export const DEVICE_CATEGORY_LABELS: Record<DeviceCategory, string> = {
   mobile: '모바일',
   foldable: '폴더블',
@@ -9,17 +20,19 @@ export const DEVICE_CATEGORY_LABELS: Record<DeviceCategory, string> = {
 
 export const DEVICE_CATEGORY_ORDER = ['mobile', 'foldable', 'tablet', 'desktop'] as const satisfies readonly DeviceCategory[];
 
-export const DEFAULT_DEVICE_PRESETS = [
-  { presetId: 'kr-mobile-galaxy-s26', name: 'Galaxy S26', width: 360, height: 780, category: 'mobile' },
-  { presetId: 'kr-mobile-galaxy-s26-plus', name: 'Galaxy S26+', width: 384, height: 832, category: 'mobile' },
-  { presetId: 'kr-mobile-galaxy-s26-ultra', name: 'Galaxy S26 Ultra', width: 412, height: 891, category: 'mobile' },
-  { presetId: 'kr-mobile-iphone-17', name: 'iPhone 17', width: 402, height: 874, category: 'mobile' },
-  { presetId: 'kr-mobile-iphone-17-air', name: 'iPhone Air', width: 420, height: 912, category: 'mobile' },
-  { presetId: 'kr-mobile-iphone-17-pro-max', name: 'iPhone 17 Pro Max', width: 440, height: 956, category: 'mobile' },
-  { presetId: 'kr-foldable-galaxy-z-flip7', name: 'Galaxy Z Flip7', width: 393, height: 916, category: 'foldable' },
-  { presetId: 'kr-foldable-galaxy-z-fold7-cover', name: 'Galaxy Z Fold7 외부', width: 360, height: 840, category: 'foldable' },
-  { presetId: 'kr-foldable-galaxy-z-fold7-main', name: 'Galaxy Z Fold7 내부', width: 656, height: 728, category: 'foldable' },
-] as const satisfies readonly DevicePreset[];
+const DEFAULT_BREAKPOINT_WIDTHS = [
+  { presetId: 'tailwind-xs-390', name: '390px', width: 390, category: 'mobile' },
+  { presetId: 'tailwind-sm', name: 'Tailwind sm', width: 640, category: 'desktop' },
+  { presetId: 'tailwind-md', name: 'Tailwind md', width: 768, category: 'desktop' },
+  { presetId: 'tailwind-lg', name: 'Tailwind lg', width: 1024, category: 'desktop' },
+  { presetId: 'tailwind-xl', name: 'Tailwind xl', width: 1280, category: 'desktop' },
+  { presetId: 'tailwind-2xl', name: 'Tailwind 2xl', width: 1536, category: 'desktop' },
+] as const;
+
+export const DEFAULT_DEVICE_PRESETS = DEFAULT_BREAKPOINT_WIDTHS.map((preset) => ({
+  ...preset,
+  height: getDefaultIframeHeight(),
+})) satisfies DevicePreset[];
 
 export const ADD_DEVICE_PRESETS = [
   { presetId: 'galaxy-s26', name: 'Galaxy S26', width: 360, height: 780, category: 'mobile' },
@@ -116,19 +129,22 @@ export const getRecommendedDeviceSet = (setName: keyof typeof RECOMMENDED_SET_PR
 
 export type RecommendedDeviceSetName = keyof typeof RECOMMENDED_SET_PRESET_IDS;
 
-export const createDefaultDeviceInstances = (): DeviceInstance[] =>
-  DEFAULT_DEVICE_PRESETS.map((preset) => ({
+export const createDefaultDeviceInstances = (): DeviceInstance[] => {
+  const height = getDefaultIframeHeight();
+
+  return DEFAULT_BREAKPOINT_WIDTHS.map((preset) => ({
     id: `default-${preset.presetId}`,
     presetId: preset.presetId,
     name: preset.name,
     width: preset.width,
-    height: preset.height,
+    height,
     baseWidth: preset.width,
-    baseHeight: preset.height,
+    baseHeight: height,
     category: preset.category,
     source: 'default',
     reloadKey: 0,
   }));
+};
 
 export const DEFAULT_PERSISTED_STATE = {
   urlInput: '',
