@@ -26,6 +26,7 @@ const SUPPRESS_AFTER_REMOTE_SCROLL_MS = 250;
 const TOP_SCROLL_RATIO_THRESHOLD = 0.01;
 const SCROLL_POSITION_EPSILON_PX = 1;
 const MIN_VERTICAL_SCROLL_SYNC_DELTA_PX = 30;
+const HORIZONTAL_SCROLL_GESTURE_SUPPRESS_MS = 450;
 
 let lastSentAt = 0;
 let lastSentRatio = -1;
@@ -33,6 +34,7 @@ let lastObservedScrollTop = 0;
 let lastObservedScrollLeft = 0;
 let lastSyncedScrollTop = 0;
 let suppressScrollUntil = 0;
+let horizontalGestureSuppressUntil = 0;
 let pendingAnimationFrame: number | null = null;
 
 const isEmbeddedFrame = () => window.top !== window;
@@ -147,8 +149,15 @@ const postScrollRatio = () => {
   const scrollLeftDelta = currentScrollLeft - previousObservedScrollLeft;
   const scrollTopDeltaFromLastSync = currentScrollTop - lastSyncedScrollTop;
   const verticalMoved = Math.abs(scrollTopDelta) >= SCROLL_POSITION_EPSILON_PX;
-  const horizontalMoved = Math.abs(scrollLeftDelta) >= SCROLL_POSITION_EPSILON_PX;
+  const horizontalMoved = scrollLeftDelta !== 0;
   const horizontalOnlyScroll = !verticalMoved && horizontalMoved;
+  const horizontalGestureScroll = horizontalMoved;
+
+  if (horizontalGestureScroll) {
+    horizontalGestureSuppressUntil = now + HORIZONTAL_SCROLL_GESTURE_SUPPRESS_MS;
+  }
+
+  const suppressedByHorizontalGesture = now < horizontalGestureSuppressUntil;
   const reachedDocumentTop = currentScrollTop <= SCROLL_POSITION_EPSILON_PX;
   const enoughVerticalMovementForSync = Math.abs(scrollTopDeltaFromLastSync) >= MIN_VERTICAL_SCROLL_SYNC_DELTA_PX;
   const shouldSyncReachedTop = verticalMoved && reachedDocumentTop && lastSentRatio !== 0;
@@ -169,6 +178,10 @@ const postScrollRatio = () => {
     verticalMoved,
     horizontalMoved,
     horizontalOnlyScroll,
+    horizontalGestureScroll,
+    horizontalGestureSuppressUntil,
+    suppressedByHorizontalGesture,
+    horizontalScrollGestureSuppressMs: HORIZONTAL_SCROLL_GESTURE_SUPPRESS_MS,
     reachedDocumentTop,
     enoughVerticalMovementForSync,
     shouldSyncReachedTop,
@@ -203,6 +216,13 @@ const postScrollRatio = () => {
   if (horizontalOnlyScroll) {
     // poslog-start
     poslog('content-scroll-horizontal-only-skipped', false, 'horizontal-only frame scroll ignored for vertical scroll sync', _log_scrollState);
+    // poslog-end
+    return;
+  }
+
+  if (suppressedByHorizontalGesture) {
+    // poslog-start
+    poslog('content-scroll-horizontal-gesture-suppressed', false, 'frame scroll ignored during horizontal gesture suppression window', _log_scrollState);
     // poslog-end
     return;
   }

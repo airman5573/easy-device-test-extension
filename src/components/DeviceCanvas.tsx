@@ -6,6 +6,13 @@ import { DeviceFrame } from './DeviceFrame';
 
 const ACTIVE_SCROLL_SOURCE_LOCK_MS = 800;
 const TOP_SCROLL_RATIO_THRESHOLD = 0.01;
+const CANVAS_HORIZONTAL_SCROLL_LOCK_MS = 1200;
+
+type AcceptedScrollSync = {
+  deviceId: string;
+  ratio: number;
+  acceptedAt: number;
+};
 
 export function DeviceCanvas() {
   const devices = useAppStore((state) => state.devices);
@@ -21,6 +28,10 @@ export function DeviceCanvas() {
   const lastCanvasScrollRef = useRef({ left: 0, top: 0 });
   const lastBroadcastAtRef = useRef(0);
   const activeScrollSourceRef = useRef<{ deviceId: string; until: number } | null>(null);
+  const canvasHorizontalLockUntilRef = useRef(0);
+  const canvasHorizontalUnlockTimerRef = useRef<number | null>(null);
+  const lastAcceptedScrollSyncRef = useRef<AcceptedScrollSync | null>(null);
+  const syncScrollRef = useRef(syncScroll);
 
   const registerIframe = useCallback((deviceId: string, iframe: HTMLIFrameElement | null) => {
     if (iframe) {
@@ -30,6 +41,92 @@ export function DeviceCanvas() {
 
     iframeRefs.current.delete(deviceId);
   }, []);
+
+  useEffect(() => {
+    syncScrollRef.current = syncScroll;
+  }, [syncScroll]);
+
+  useEffect(() => () => {
+    if (canvasHorizontalUnlockTimerRef.current !== null) {
+      window.clearTimeout(canvasHorizontalUnlockTimerRef.current);
+    }
+  }, []);
+
+  const broadcastScrollRatio = useCallback((sourceDeviceId: string, ratio: number, reason: string) => {
+    const scrollCommand = createScrollToMessage(ratio);
+    const _log_targets = [...iframeRefs.current.keys()].filter((deviceId) => deviceId !== sourceDeviceId);
+    const _log_broadcast = {
+      reason,
+      sourceDeviceId,
+      ratio,
+      scrollCommand,
+      targetDeviceIds: _log_targets,
+      iframeDeviceIds: [...iframeRefs.current.keys()],
+      canvasScrollLeft: canvasRef.current?.scrollLeft ?? null,
+      canvasScrollTop: canvasRef.current?.scrollTop ?? null,
+      canvasHorizontalLockUntil: canvasHorizontalLockUntilRef.current,
+      lastAcceptedScrollSync: lastAcceptedScrollSyncRef.current,
+    };
+    // poslog-start
+    poslog('app-scroll-sync-broadcast', false, 'broadcasting scrollTo command to sibling frames', _log_broadcast);
+    // poslog-end
+
+    iframeRefs.current.forEach((iframe, deviceId) => {
+      if (deviceId === sourceDeviceId) {
+        return;
+      }
+
+      const _log_targetContext = {
+        reason,
+        scrollCommand,
+        sourceDeviceId,
+        targetDeviceId: deviceId,
+        iframeSrc: iframe.src,
+      };
+      // poslog-start
+      poslog('app-scroll-sync-target-posted', false, 'posted scrollTo command to target frame', _log_targetContext);
+      // poslog-end
+      iframe.contentWindow?.postMessage(scrollCommand, '*');
+    });
+  }, []);
+
+  const scheduleCanvasHorizontalUnlock = useCallback(() => {
+    if (canvasHorizontalUnlockTimerRef.current !== null) {
+      window.clearTimeout(canvasHorizontalUnlockTimerRef.current);
+    }
+
+    canvasHorizontalUnlockTimerRef.current = window.setTimeout(() => {
+      canvasHorizontalUnlockTimerRef.current = null;
+      const now = Date.now();
+
+      if (now < canvasHorizontalLockUntilRef.current) {
+        scheduleCanvasHorizontalUnlock();
+        return;
+      }
+
+      const lastAcceptedScrollSync = lastAcceptedScrollSyncRef.current;
+      const _log_unlockContext = {
+        now,
+        syncScroll: syncScrollRef.current,
+        lastAcceptedScrollSync,
+        canvasScrollLeft: canvasRef.current?.scrollLeft ?? null,
+        canvasScrollTop: canvasRef.current?.scrollTop ?? null,
+        iframeDeviceIds: [...iframeRefs.current.keys()],
+      };
+      // poslog-start
+      poslog('app-canvas-horizontal-lock-ended', false, 'canvas horizontal scroll lock ended', _log_unlockContext);
+      // poslog-end
+
+      if (!syncScrollRef.current || !lastAcceptedScrollSync) {
+        return;
+      }
+
+      // poslog-start
+      poslog('app-canvas-horizontal-lock-resync-broadcast', false, 'resyncing siblings after canvas horizontal lock ended', _log_unlockContext);
+      // poslog-end
+      broadcastScrollRatio(lastAcceptedScrollSync.deviceId, lastAcceptedScrollSync.ratio, 'post-canvas-horizontal-lock-resync');
+    }, CANVAS_HORIZONTAL_SCROLL_LOCK_MS);
+  }, [broadcastScrollRatio]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -87,6 +184,19 @@ export function DeviceCanvas() {
         return;
       }
 
+      if (now < canvasHorizontalLockUntilRef.current) {
+        const _log_lockIgnoredContext = {
+          ..._log_messageContext,
+          canvasHorizontalLockUntil: canvasHorizontalLockUntilRef.current,
+          remainingLockMs: canvasHorizontalLockUntilRef.current - now,
+          lastAcceptedScrollSync: lastAcceptedScrollSyncRef.current,
+        };
+        // poslog-start
+        poslog('app-scroll-message-canvas-horizontal-lock-ignored', false, 'scroll message ignored during canvas horizontal lock', _log_lockIgnoredContext);
+        // poslog-end
+        return;
+      }
+
       if (activeScrollSource && activeScrollSource.until > now && activeScrollSource.deviceId !== sourceDeviceId) {
         // poslog-start
         poslog('app-scroll-source-lock-rejected', false, 'scroll message rejected by active source lock', _log_messageContext);
@@ -122,39 +232,25 @@ export function DeviceCanvas() {
       }
       lastBroadcastAtRef.current = now;
 
-      const scrollCommand = createScrollToMessage(targetRatio);
-      const _log_targets = [...iframeRefs.current.keys()].filter((deviceId) => deviceId !== sourceDeviceId);
-      const _log_sendContext = {
+      lastAcceptedScrollSyncRef.current = {
+        deviceId: sourceDeviceId,
+        ratio: targetRatio,
+        acceptedAt: now,
+      };
+      const _log_acceptContext = {
         ..._log_broadcastContext,
-        scrollCommand,
-        targetDeviceIds: _log_targets,
         lastBroadcastAtAfter: lastBroadcastAtRef.current,
+        lastAcceptedScrollSync: lastAcceptedScrollSyncRef.current,
       };
       // poslog-start
-      poslog('app-scroll-sync-broadcast', false, 'broadcasting scrollTo command to sibling frames', _log_sendContext);
+      poslog('app-scroll-sync-accepted', false, 'accepted stable iframe scroll sync source', _log_acceptContext);
       // poslog-end
-
-      iframeRefs.current.forEach((iframe, deviceId) => {
-        if (deviceId === sourceDeviceId) {
-          return;
-        }
-
-        const _log_targetContext = {
-          scrollCommand,
-          sourceDeviceId,
-          targetDeviceId: deviceId,
-          iframeSrc: iframe.src,
-        };
-        // poslog-start
-        poslog('app-scroll-sync-target-posted', false, 'posted scrollTo command to target frame', _log_targetContext);
-        // poslog-end
-        iframe.contentWindow?.postMessage(scrollCommand, '*');
-      });
+      broadcastScrollRatio(sourceDeviceId, targetRatio, 'live-scroll');
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [activeUrl, syncScroll]);
+  }, [activeUrl, broadcastScrollRatio, syncScroll]);
 
   const handleCanvasScroll = () => {
     const canvas = canvasRef.current;
@@ -164,21 +260,39 @@ export function DeviceCanvas() {
     }
 
     const previousScroll = lastCanvasScrollRef.current;
+    const deltaLeft = canvas.scrollLeft - previousScroll.left;
+    const deltaTop = canvas.scrollTop - previousScroll.top;
+    const now = Date.now();
+
+    if (deltaLeft !== 0) {
+      canvasHorizontalLockUntilRef.current = now + CANVAS_HORIZONTAL_SCROLL_LOCK_MS;
+      scheduleCanvasHorizontalUnlock();
+    }
+
     const _log_canvasScroll = {
       scrollLeft: canvas.scrollLeft,
       scrollTop: canvas.scrollTop,
-      deltaLeft: canvas.scrollLeft - previousScroll.left,
-      deltaTop: canvas.scrollTop - previousScroll.top,
+      deltaLeft,
+      deltaTop,
       previousScroll,
       activeUrl,
       syncScroll,
       activeScrollSource: activeScrollSourceRef.current,
+      canvasHorizontalLockUntil: canvasHorizontalLockUntilRef.current,
+      horizontalLockDurationMs: CANVAS_HORIZONTAL_SCROLL_LOCK_MS,
+      lastAcceptedScrollSync: lastAcceptedScrollSyncRef.current,
       iframeDeviceIds: [...iframeRefs.current.keys()],
     };
     lastCanvasScrollRef.current = { left: canvas.scrollLeft, top: canvas.scrollTop };
     // poslog-start
     poslog('app-device-canvas-scroll', false, 'outer device canvas scrolled', _log_canvasScroll);
     // poslog-end
+
+    if (deltaLeft !== 0) {
+      // poslog-start
+      poslog('app-canvas-horizontal-lock-started', false, 'canvas horizontal scroll lock started or extended', _log_canvasScroll);
+      // poslog-end
+    }
   };
 
   return (
