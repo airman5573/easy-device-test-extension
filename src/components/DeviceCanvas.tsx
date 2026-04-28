@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState, type WheelEvent } from 'react';
 import { createScrollToMessage, parseResponsiveLabMessage } from '../extension/messaging';
 import { useAppStore } from '../store/appStore';
 import { poslog } from '../services/pos-logger';
@@ -32,6 +32,7 @@ export function DeviceCanvas() {
   const canvasHorizontalUnlockTimerRef = useRef<number | null>(null);
   const lastAcceptedScrollSyncRef = useRef<AcceptedScrollSync | null>(null);
   const syncScrollRef = useRef(syncScroll);
+  const [isCanvasHorizontalLockVisible, setIsCanvasHorizontalLockVisible] = useState(false);
 
   const registerIframe = useCallback((deviceId: string, iframe: HTMLIFrameElement | null) => {
     if (iframe) {
@@ -103,6 +104,8 @@ export function DeviceCanvas() {
         scheduleCanvasHorizontalUnlock();
         return;
       }
+
+      setIsCanvasHorizontalLockVisible(false);
 
       const lastAcceptedScrollSync = lastAcceptedScrollSyncRef.current;
       const _log_unlockContext = {
@@ -266,6 +269,7 @@ export function DeviceCanvas() {
 
     if (deltaLeft !== 0) {
       canvasHorizontalLockUntilRef.current = now + CANVAS_HORIZONTAL_SCROLL_LOCK_MS;
+      setIsCanvasHorizontalLockVisible(true);
       scheduleCanvasHorizontalUnlock();
     }
 
@@ -295,37 +299,81 @@ export function DeviceCanvas() {
     }
   };
 
+  const handleCanvasShieldWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
+    const canvas = canvasRef.current;
+
+    if (!canvas) {
+      return;
+    }
+
+    const deltaLeft = event.deltaX !== 0 ? event.deltaX : event.shiftKey ? event.deltaY : 0;
+    const deltaTop = event.shiftKey ? 0 : event.deltaY;
+
+    if (deltaLeft === 0 && deltaTop === 0) {
+      return;
+    }
+
+    canvas.scrollLeft += deltaLeft;
+    canvas.scrollTop += deltaTop;
+
+    const _log_shieldWheel = {
+      deltaX: event.deltaX,
+      deltaY: event.deltaY,
+      shiftKey: event.shiftKey,
+      forwardedDeltaLeft: deltaLeft,
+      forwardedDeltaTop: deltaTop,
+      canvasScrollLeft: canvas.scrollLeft,
+      canvasScrollTop: canvas.scrollTop,
+      canvasHorizontalLockUntil: canvasHorizontalLockUntilRef.current,
+      lastAcceptedScrollSync: lastAcceptedScrollSyncRef.current,
+    };
+    // poslog-start
+    poslog('app-canvas-horizontal-shield-wheel-forwarded', false, 'horizontal shield forwarded wheel input to canvas', _log_shieldWheel);
+    // poslog-end
+  }, []);
+
   return (
-    <main
-      ref={canvasRef}
-      className="relative w-full flex-1 overflow-auto bg-appbg p-6 select-none"
-      data-ai-id="device-canvas"
-      onScroll={handleCanvasScroll}
-    >
-      <div className="flex h-full w-max items-start gap-6" data-ai-id="device-canvas-content">
-        {devices.length === 0 ? (
-          <div
-            className="flex h-full min-w-[360px] items-center justify-center rounded-md border border-dashed border-bordercol bg-vpbg px-8 text-sm text-slate-500"
-            data-ai-id="device-canvas-empty-state"
-          >
-            선택된 기기가 없습니다. 추가 버튼으로 미리보기 프레임을 만드세요.
-          </div>
-        ) : null}
-        {devices.map((device, index) => (
-          <DeviceFrame
-            key={device.id}
-            device={device}
-            index={index}
-            zoom={zoom}
-            activeUrl={activeUrl}
-            onRotate={rotateDevice}
-            onReload={reloadDevice}
-            onClose={closeDevice}
-            onMove={reorderDevices}
-            onIframeRef={registerIframe}
-          />
-        ))}
-      </div>
-    </main>
+    <section className="relative min-h-0 flex-1 overflow-hidden" data-ai-id="device-canvas-shell">
+      <main
+        ref={canvasRef}
+        className="relative h-full w-full overflow-auto bg-appbg p-6 select-none"
+        data-ai-id="device-canvas"
+        onScroll={handleCanvasScroll}
+      >
+        <div className="flex h-full w-max items-start gap-6" data-ai-id="device-canvas-content">
+          {devices.length === 0 ? (
+            <div
+              className="flex h-full min-w-[360px] items-center justify-center rounded-md border border-dashed border-bordercol bg-vpbg px-8 text-sm text-slate-500"
+              data-ai-id="device-canvas-empty-state"
+            >
+              선택된 기기가 없습니다. 추가 버튼으로 미리보기 프레임을 만드세요.
+            </div>
+          ) : null}
+          {devices.map((device, index) => (
+            <DeviceFrame
+              key={device.id}
+              device={device}
+              index={index}
+              zoom={zoom}
+              activeUrl={activeUrl}
+              onRotate={rotateDevice}
+              onReload={reloadDevice}
+              onClose={closeDevice}
+              onMove={reorderDevices}
+              onIframeRef={registerIframe}
+            />
+          ))}
+        </div>
+      </main>
+      {isCanvasHorizontalLockVisible ? (
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 z-50 cursor-ew-resize bg-transparent"
+          data-ai-id="device-canvas-horizontal-scroll-shield"
+          onPointerDown={(event) => event.preventDefault()}
+          onWheel={handleCanvasShieldWheel}
+        />
+      ) : null}
+    </section>
   );
 }
