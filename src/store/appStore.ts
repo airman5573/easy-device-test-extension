@@ -284,8 +284,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   resetLayout: () => {
+    const { urlInput, activeUrl } = get();
+
     set({
       ...cloneDefaultState(),
+      urlInput,
+      activeUrl,
       urlError: null,
       isAddModalOpen: false,
     });
