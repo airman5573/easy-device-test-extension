@@ -7,6 +7,7 @@ import { DeviceFrame } from './DeviceFrame';
 const ACTIVE_SCROLL_SOURCE_LOCK_MS = 800;
 const TOP_SCROLL_RATIO_THRESHOLD = 0.01;
 const CANVAS_HORIZONTAL_SCROLL_LOCK_MS = 1200;
+const CANVAS_HORIZONTAL_SHIELD_VISIBLE_MS = 300;
 
 type AcceptedScrollSync = {
   deviceId: string;
@@ -30,9 +31,10 @@ export function DeviceCanvas() {
   const activeScrollSourceRef = useRef<{ deviceId: string; until: number } | null>(null);
   const canvasHorizontalLockUntilRef = useRef(0);
   const canvasHorizontalUnlockTimerRef = useRef<number | null>(null);
+  const canvasHorizontalShieldTimerRef = useRef<number | null>(null);
   const lastAcceptedScrollSyncRef = useRef<AcceptedScrollSync | null>(null);
   const syncScrollRef = useRef(syncScroll);
-  const [isCanvasHorizontalLockVisible, setIsCanvasHorizontalLockVisible] = useState(false);
+  const [isCanvasHorizontalShieldVisible, setIsCanvasHorizontalShieldVisible] = useState(false);
 
   const registerIframe = useCallback((deviceId: string, iframe: HTMLIFrameElement | null) => {
     if (iframe) {
@@ -50,6 +52,10 @@ export function DeviceCanvas() {
   useEffect(() => () => {
     if (canvasHorizontalUnlockTimerRef.current !== null) {
       window.clearTimeout(canvasHorizontalUnlockTimerRef.current);
+    }
+
+    if (canvasHorizontalShieldTimerRef.current !== null) {
+      window.clearTimeout(canvasHorizontalShieldTimerRef.current);
     }
   }, []);
 
@@ -91,6 +97,30 @@ export function DeviceCanvas() {
     });
   }, []);
 
+
+  const scheduleCanvasHorizontalShieldHide = useCallback(() => {
+    if (canvasHorizontalShieldTimerRef.current !== null) {
+      window.clearTimeout(canvasHorizontalShieldTimerRef.current);
+    }
+
+    canvasHorizontalShieldTimerRef.current = window.setTimeout(() => {
+      canvasHorizontalShieldTimerRef.current = null;
+      setIsCanvasHorizontalShieldVisible(false);
+
+      const _log_shieldHidden = {
+        shieldVisibleMs: CANVAS_HORIZONTAL_SHIELD_VISIBLE_MS,
+        canvasHorizontalLockUntil: canvasHorizontalLockUntilRef.current,
+        remainingLockMs: Math.max(0, canvasHorizontalLockUntilRef.current - Date.now()),
+        lastAcceptedScrollSync: lastAcceptedScrollSyncRef.current,
+        canvasScrollLeft: canvasRef.current?.scrollLeft ?? null,
+        canvasScrollTop: canvasRef.current?.scrollTop ?? null,
+      };
+      // poslog-start
+      poslog('app-canvas-horizontal-shield-hidden', false, 'canvas horizontal shield hidden before sync lock ends', _log_shieldHidden);
+      // poslog-end
+    }, CANVAS_HORIZONTAL_SHIELD_VISIBLE_MS);
+  }, []);
+
   const scheduleCanvasHorizontalUnlock = useCallback(() => {
     if (canvasHorizontalUnlockTimerRef.current !== null) {
       window.clearTimeout(canvasHorizontalUnlockTimerRef.current);
@@ -104,8 +134,6 @@ export function DeviceCanvas() {
         scheduleCanvasHorizontalUnlock();
         return;
       }
-
-      setIsCanvasHorizontalLockVisible(false);
 
       const lastAcceptedScrollSync = lastAcceptedScrollSyncRef.current;
       const _log_unlockContext = {
@@ -269,7 +297,8 @@ export function DeviceCanvas() {
 
     if (deltaLeft !== 0) {
       canvasHorizontalLockUntilRef.current = now + CANVAS_HORIZONTAL_SCROLL_LOCK_MS;
-      setIsCanvasHorizontalLockVisible(true);
+      setIsCanvasHorizontalShieldVisible(true);
+      scheduleCanvasHorizontalShieldHide();
       scheduleCanvasHorizontalUnlock();
     }
 
@@ -284,6 +313,7 @@ export function DeviceCanvas() {
       activeScrollSource: activeScrollSourceRef.current,
       canvasHorizontalLockUntil: canvasHorizontalLockUntilRef.current,
       horizontalLockDurationMs: CANVAS_HORIZONTAL_SCROLL_LOCK_MS,
+      horizontalShieldVisibleMs: CANVAS_HORIZONTAL_SHIELD_VISIBLE_MS,
       lastAcceptedScrollSync: lastAcceptedScrollSyncRef.current,
       iframeDeviceIds: [...iframeRefs.current.keys()],
     };
@@ -365,7 +395,7 @@ export function DeviceCanvas() {
           ))}
         </div>
       </main>
-      {isCanvasHorizontalLockVisible ? (
+      {isCanvasHorizontalShieldVisible ? (
         <div
           aria-hidden="true"
           className="absolute inset-0 z-50 cursor-ew-resize bg-transparent"
